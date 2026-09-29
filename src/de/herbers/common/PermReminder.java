@@ -42,12 +42,14 @@ public final class PermReminder {
     static final String EXTRA_KEY = "perm_key";
     static final String EXTRA_NOTIF_ID = "perm_notif_id";
 
-    /** Eine ueberwachte Berechtigung. */
+    /** Eine ueberwachte Berechtigung. Felder sind oeffentlich lesbar, damit die
+     *  App dieselbe Definition auch fuer die Anzeige (aufklappbarer
+     *  Berechtigungs-Abschnitt in den Einstellungen) nutzen kann. */
     public static final class Perm {
-        final String key;        // stabiler Schluessel (z.B. "accessibility")
-        final String label;      // Anzeigename (z.B. "Bedienungshilfe")
-        final boolean granted;   // aktueller Zustand
-        final Intent settings;   // Intent, das die Berechtigungssteuerung oeffnet
+        public final String key;        // stabiler Schluessel (z.B. "accessibility")
+        public final String label;      // Anzeigename (z.B. "Bedienungshilfe")
+        public final boolean granted;   // aktueller Zustand
+        public final Intent settings;   // Intent, das die Berechtigungssteuerung oeffnet
         public Perm(String key, String label, boolean granted, Intent settings) {
             this.key = key; this.label = label; this.granted = granted; this.settings = settings;
         }
