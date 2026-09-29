@@ -33,6 +33,23 @@ public final class DiagLog {
     /** logcat-Tag setzen (einmal beim App-Start, z.B. "SucherDiag"). */
     public static void setTag(String t) { if (t != null && t.length() > 0) tag = t; }
 
+    // ---- Anzeige-Schalter fuer die Log-Ansicht in den Einstellungen (in allen
+    // Apps gleich). Standard AN. Eigene kleine Prefs-Datei, damit es nicht mit
+    // App-Einstellungen kollidiert. ----
+    private static final String PREFS = "herbers_diaglog";
+    private static final String K_SHOW = "show";
+
+    /** Ob die Log-Ansicht angezeigt werden soll (Schalter in den Einstellungen). */
+    public static boolean isDisplayEnabled(Context ctx) {
+        try { return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(K_SHOW, true); }
+        catch (Throwable t) { return true; }
+    }
+
+    public static void setDisplayEnabled(Context ctx, boolean on) {
+        try { ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(K_SHOW, on).apply(); }
+        catch (Throwable ignored) {}
+    }
+
     public static synchronized void log(Context ctx, String msg) {
         if (ctx == null) return;
         android.util.Log.i(tag, msg);
