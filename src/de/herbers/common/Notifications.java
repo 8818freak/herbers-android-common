@@ -47,6 +47,225 @@ public final class Notifications {
                              text  == null ? "" : text.toString() };
     }
 
+    /**
+     * Reichhaltigerer Text als {@link #titleAndText}: bezieht die Mehrzeiler-
+     * und Chat-Darstellungen mit ein, die viele Apps zusaetzlich mitliefern -
+     * InboxStyle-Zeilen (EXTRA_TEXT_LINES, z.B. mehrere Mails), MessagingStyle-
+     * Nachrichten (EXTRA_MESSAGES, Chat mit Absender) und die Zusatzzeile
+     * (EXTRA_SUB_TEXT, z.B. Konto/Kanal). Ergebnis ist mehrzeilig; Dubletten
+     * zum Basistext werden vermieden. Fuer die Anzeige/Indizierung, wenn mehr
+     * als die eine Textzeile gewuenscht ist. Leer, wenn nichts da ist.
+     */
+    public static String richText(Notification n) {
+        if (n == null || n.extras == null) return "";
+        Bundle ex = n.extras;
+        StringBuilder sb = new StringBuilder();
+        CharSequence text = ex.getCharSequence(Notification.EXTRA_TEXT);
+        CharSequence big  = ex.getCharSequence(Notification.EXTRA_BIG_TEXT);
+        CharSequence base = (big != null && (text == null || big.length() > text.length())) ? big : text;
+        if (base != null && base.length() > 0) sb.append(base);
+        // MessagingStyle: einzelne Nachrichten mit Absender.
+        android.os.Parcelable[] msgs = ex.getParcelableArray(Notification.EXTRA_MESSAGES);
+        if (msgs != null) {
+            for (android.os.Parcelable p : msgs) {
+                if (!(p instanceof Bundle)) continue;
+                Bundle m = (Bundle) p;
+                CharSequence mt = m.getCharSequence("text");
+                if (mt == null || mt.length() == 0) continue;
+                CharSequence sender = m.getCharSequence("sender");
+                String line = (sender != null && sender.length() > 0 ? sender + ": " : "") + mt;
+                if (sb.indexOf(line) >= 0) continue;
+                if (sb.length() > 0) sb.append('\n');
+                sb.append(line);
+            }
+        }
+        // InboxStyle: mehrere Zeilen (z.B. Mail-Liste).
+        CharSequence[] lines = ex.getCharSequenceArray(Notification.EXTRA_TEXT_LINES);
+        if (lines != null) {
+            for (CharSequence l : lines) {
+                if (l == null || l.length() == 0) continue;
+                String s = l.toString();
+                if (sb.indexOf(s) >= 0) continue;
+                if (sb.length() > 0) sb.append('\n');
+                sb.append(s);
+            }
+        }
+        // Zusatzzeile (Konto/Kanal) als Kontext, wenn nicht schon enthalten.
+        CharSequence sub = ex.getCharSequence(Notification.EXTRA_SUB_TEXT);
+        if (sub != null && sub.length() > 0 && sb.indexOf(sub.toString()) < 0) {
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(sub);
+        }
+        return sb.toString();
+    }
+
+    /** Das grosse Bild einer Benachrichtigung (BigPictureStyle, z.B. ein Foto in
+     *  einer Chat-Nachricht), oder null. Behandelt Bitmap (klassisch) und Icon
+     *  (EXTRA_PICTURE_ICON ab Android 12). */
+    public static android.graphics.Bitmap bigPicture(Context ctx, Notification n) {
+        if (n == null || n.extras == null) return null;
+        Bundle ex = n.extras;
+        Object p = ex.getParcelable(Notification.EXTRA_PICTURE);
+        if (p instanceof android.graphics.Bitmap) return (android.graphics.Bitmap) p;
+        Object pIcon = ex.getParcelable("android.pictureIcon"); // EXTRA_PICTURE_ICON
+        if (pIcon instanceof android.graphics.drawable.Icon) return iconToBitmap(ctx, (android.graphics.drawable.Icon) pIcon);
+        if (p instanceof android.graphics.drawable.Icon) return iconToBitmap(ctx, (android.graphics.drawable.Icon) p);
+        return null;
+    }
+
+    /** Das grosse Icon/Avatar einer Benachrichtigung (Absenderbild), oder null. */
+    public static android.graphics.Bitmap largeIcon(Context ctx, Notification n) {
+        if (n == null) return null;
+        try {
+            android.graphics.drawable.Icon ic = n.getLargeIcon();
+            if (ic != null) {
+                android.graphics.Bitmap b = iconToBitmap(ctx, ic);
+                if (b != null) return b;
+            }
+        } catch (Throwable ignored) {}
+        if (n.extras != null) {
+            Object li = n.extras.getParcelable(Notification.EXTRA_LARGE_ICON);
+            if (li instanceof android.graphics.Bitmap) return (android.graphics.Bitmap) li;
+            if (li instanceof android.graphics.drawable.Icon) return iconToBitmap(ctx, (android.graphics.drawable.Icon) li);
+        }
+        return null;
+    }
+
+    private static android.graphics.Bitmap iconToBitmap(Context ctx, android.graphics.drawable.Icon icon) {
+        try {
+            android.graphics.drawable.Drawable d = icon.loadDrawable(ctx);
+            if (d == null) return null;
+            if (d instanceof android.graphics.drawable.BitmapDrawable) {
+                android.graphics.Bitmap b = ((android.graphics.drawable.BitmapDrawable) d).getBitmap();
+                if (b != null) return b;
+            }
+            int w = Math.max(1, d.getIntrinsicWidth());
+            int h = Math.max(1, d.getIntrinsicHeight());
+            android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas c = new android.graphics.Canvas(bmp);
+            d.setBounds(0, 0, w, h);
+            d.draw(c);
+            return bmp;
+        } catch (Throwable t) { return null; }
+    }
+
+    /** Eine einzelne Chat-Nachricht aus einer MessagingStyle-Benachrichtigung. */
+    public static final class Message {
+        public final String sender;   // Absender (kann leer sein = "ich"/unbekannt)
+        public final String text;     // Nachrichtentext
+        public final long time;       // Zeitstempel (ms), 0 wenn unbekannt
+        public Message(String sender, String text, long time) {
+            this.sender = sender; this.text = text; this.time = time;
+        }
+    }
+
+    /**
+     * Vollstaendige, strukturierte Auswertung einer Benachrichtigung - ALLES,
+     * was sinnvoll auslesbar ist, an EINER Stelle, damit jede App sich nur
+     * herausnimmt, was sie braucht. Reine Daten (keine Bitmaps - die holt man
+     * bei Bedarf ueber {@link #bigPicture}/{@link #largeIcon}, das spart
+     * Speicher und braucht einen Context). Nie null-Strings (leer statt null).
+     */
+    public static final class Info {
+        public String appPackage = "";
+        public String category = "";       // Notification.category (z.B. "msg", "email", "call")
+        public long when = 0;              // Notification.when (ms)
+        public String title = "";          // EXTRA_TITLE
+        public String titleBig = "";       // EXTRA_TITLE_BIG (aufgeklappt)
+        public String text = "";           // laengster verfuegbarer Fliesstext (text/bigText)
+        public String subText = "";        // EXTRA_SUB_TEXT (Konto/Kanal)
+        public String infoText = "";       // EXTRA_INFO_TEXT (rechts kleine Info)
+        public String summaryText = "";    // EXTRA_SUMMARY_TEXT (BigPicture-Untertitel)
+        public String conversationTitle = ""; // EXTRA_CONVERSATION_TITLE (Gruppenname)
+        public final java.util.List<String> lines = new java.util.ArrayList<>();     // InboxStyle
+        public final java.util.List<Message> messages = new java.util.ArrayList<>(); // MessagingStyle
+        public final java.util.List<String> people = new java.util.ArrayList<>();    // EXTRA_PEOPLE(_LIST)
+        public boolean groupSummary = false;
+        public boolean ongoing = false;    // laufend (Musik, Download, Anruf)
+        public int progress = 0, progressMax = 0;
+        public boolean progressIndeterminate = false;
+        public boolean hasBigPicture = false; // ein grosses Bild ist vorhanden
+        public boolean hasLargeIcon = false;  // ein Avatar/grosses Icon ist vorhanden
+        public boolean canReply = false, canMarkRead = false, canDelete = false;
+        public int actionCount = 0;
+
+        /** Titel + Text so, wie {@link #titleAndText} sie liefert. */
+        public String[] titleAndText() { return new String[]{ title, text }; }
+
+        /** Mehrzeiliger Gesamttext: Basistext + Chat-Nachrichten + InboxStyle-
+         *  Zeilen + Zusatzzeile, Dubletten vermieden (wie {@link #richText}). */
+        public String richText() {
+            StringBuilder sb = new StringBuilder();
+            if (!text.isEmpty()) sb.append(text);
+            for (Message m : messages) {
+                if (m.text == null || m.text.isEmpty()) continue;
+                String line = (m.sender != null && !m.sender.isEmpty() ? m.sender + ": " : "") + m.text;
+                if (sb.indexOf(line) >= 0) continue;
+                if (sb.length() > 0) sb.append('\n'); sb.append(line);
+            }
+            for (String l : lines) {
+                if (l == null || l.isEmpty() || sb.indexOf(l) >= 0) continue;
+                if (sb.length() > 0) sb.append('\n'); sb.append(l);
+            }
+            if (!subText.isEmpty() && sb.indexOf(subText) < 0) {
+                if (sb.length() > 0) sb.append('\n'); sb.append(subText);
+            }
+            return sb.toString();
+        }
+    }
+
+    private static String str(CharSequence cs) { return cs == null ? "" : cs.toString(); }
+
+    /**
+     * Alles aus einer Benachrichtigung strukturiert einsammeln (siehe {@link Info}).
+     * {@code sbn} darf null sein - dann fehlen nur die davon abgeleiteten Felder
+     * (Paket, when). Bitmaps sind bewusst NICHT enthalten.
+     */
+    public static Info describe(StatusBarNotification sbn, Notification n) {
+        Info info = new Info();
+        if (n == null && sbn != null) n = sbn.getNotification();
+        if (n == null) return info;
+        if (sbn != null) { info.appPackage = sbn.getPackageName() == null ? "" : sbn.getPackageName(); }
+        info.category = n.category == null ? "" : n.category;
+        info.when = n.when;
+        info.ongoing = (n.flags & Notification.FLAG_ONGOING_EVENT) != 0;
+        info.groupSummary = isGroupSummary(n);
+        String[] tt = titleAndText(n);
+        info.title = tt[0];
+        info.text = tt[1];
+        Bundle ex = n.extras;
+        if (ex != null) {
+            info.titleBig = str(ex.getCharSequence(Notification.EXTRA_TITLE_BIG));
+            info.subText = str(ex.getCharSequence(Notification.EXTRA_SUB_TEXT));
+            info.infoText = str(ex.getCharSequence(Notification.EXTRA_INFO_TEXT));
+            info.summaryText = str(ex.getCharSequence(Notification.EXTRA_SUMMARY_TEXT));
+            info.conversationTitle = str(ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE));
+            info.progress = ex.getInt(Notification.EXTRA_PROGRESS, 0);
+            info.progressMax = ex.getInt(Notification.EXTRA_PROGRESS_MAX, 0);
+            info.progressIndeterminate = ex.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE, false);
+            CharSequence[] lines = ex.getCharSequenceArray(Notification.EXTRA_TEXT_LINES);
+            if (lines != null) for (CharSequence l : lines) if (l != null && l.length() > 0) info.lines.add(l.toString());
+            android.os.Parcelable[] msgs = ex.getParcelableArray(Notification.EXTRA_MESSAGES);
+            if (msgs != null) for (android.os.Parcelable p : msgs) {
+                if (!(p instanceof Bundle)) continue;
+                Bundle m = (Bundle) p;
+                CharSequence mt = m.getCharSequence("text");
+                if (mt == null || mt.length() == 0) continue;
+                info.messages.add(new Message(str(m.getCharSequence("sender")), mt.toString(), m.getLong("time", 0)));
+            }
+            String[] people = ex.getStringArray(Notification.EXTRA_PEOPLE);
+            if (people != null) for (String p : people) if (p != null && !p.isEmpty()) info.people.add(p);
+            info.hasBigPicture = ex.getParcelable(Notification.EXTRA_PICTURE) != null
+                    || ex.getParcelable("android.pictureIcon") != null;
+        }
+        try { info.hasLargeIcon = n.getLargeIcon() != null; } catch (Throwable ignored) {}
+        info.canReply = findAnyReplyAction(n) != null;
+        info.canMarkRead = findMarkReadAction(n) != null;
+        info.canDelete = findDeleteAction(n) != null;
+        info.actionCount = n.actions == null ? 0 : n.actions.length;
+        return info;
+    }
+
     /** Reine Gruppen-Zusammenfassung ("3 neue Mails") ohne Einzelinhalt. */
     public static boolean isGroupSummary(Notification n) {
         return n != null && (n.flags & Notification.FLAG_GROUP_SUMMARY) != 0;
