@@ -14,6 +14,7 @@ more than one app shares a single, maintained implementation. Package
 | `SettingsBackup` | Text-based backup/restore of a whole `SharedPreferences` file (`export` / `importInto`). Unifies the logic previously copied into each app. |
 | `ColorUtil` | `colorFor(key)` – a stable, distinct colour per key (package name / file extension), e.g. a coloured bar per source app. |
 | `Notifications` | Shared notification-capture core: title/text extraction (prefers big text), group-summary/blank filters, app label, "real notification" test, content signature, and action finders (reply, delete, **mark as read**) incl. Wearable actions. Pure static helpers on `Notification`/`StatusBarNotification`, no app coupling. |
+| `Apps` | `launchable(ctx)` – all launcher apps (excluding your own) as `{package, label}`, sorted by label. Basis for app-picker lists (e.g. "notification sources"); each app appends its own already-observed senders. |
 
 Each app keeps its own `NotificationListenerService` (what it does with a
 notification differs), but now shares the field extraction, filters and action
