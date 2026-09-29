@@ -46,12 +46,17 @@ public final class PermReminder {
      *  App dieselbe Definition auch fuer die Anzeige (aufklappbarer
      *  Berechtigungs-Abschnitt in den Einstellungen) nutzen kann. */
     public static final class Perm {
-        public final String key;        // stabiler Schluessel (z.B. "accessibility")
-        public final String label;      // Anzeigename (z.B. "Bedienungshilfe")
-        public final boolean granted;   // aktueller Zustand
-        public final Intent settings;   // Intent, das die Berechtigungssteuerung oeffnet
+        public final String key;         // stabiler Schluessel (z.B. "accessibility")
+        public final String label;       // Anzeigename (z.B. "Bedienungshilfe")
+        public final boolean granted;    // aktueller Zustand
+        public final Intent settings;    // Intent, das die Berechtigungssteuerung oeffnet
+        public final String explanation; // wofuer die Berechtigung gebraucht wird (kann null sein)
         public Perm(String key, String label, boolean granted, Intent settings) {
-            this.key = key; this.label = label; this.granted = granted; this.settings = settings;
+            this(key, label, granted, settings, null);
+        }
+        public Perm(String key, String label, boolean granted, Intent settings, String explanation) {
+            this.key = key; this.label = label; this.granted = granted;
+            this.settings = settings; this.explanation = explanation;
         }
     }
 
