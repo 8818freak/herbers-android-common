@@ -40,6 +40,7 @@ Android 10+ (API 29); Java-8-Sprachfeatures.
 
 ## Lizenz
 
-**GNU Lesser General Public License v3.0 (oder später)** – `LICENSE` (LGPLv3),
-`COPYING` (GPLv3). Einbindbar auch aus nicht-GPL-Apps; Änderungen an der
-Bibliothek selbst bleiben copyleft. Copyright © 2026 Mathias Herbers.
+**GNU Lesser General Public License v3.0 (oder später)** – siehe `LICENSE`. Die
+LGPLv3 baut auf der [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html) auf.
+Einbindbar auch aus nicht-GPL-Apps; Änderungen an der Bibliothek selbst bleiben
+copyleft. Copyright © 2026 Mathias Herbers.
