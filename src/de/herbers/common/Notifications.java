@@ -131,6 +131,36 @@ public final class Notifications {
         return null;
     }
 
+    /** Das kleine Statusleisten-Icon einer Benachrichtigung als Bitmap, optional
+     *  eingefaerbt (z.B. mit der Benachrichtigungsfarbe {@code n.color}). Diese
+     *  kleinen Icons sind monochrome Vorlagen - ohne Einfaerbung erscheinen sie
+     *  meist rein weiss. {@code tint == 0} laesst die Originalfarbe. */
+    public static android.graphics.Bitmap smallIcon(Context ctx, Notification n, int tint) {
+        if (n == null) return null;
+        try {
+            android.graphics.drawable.Icon ic = n.getSmallIcon();
+            if (ic == null) return null;
+            android.graphics.drawable.Drawable d = ic.loadDrawable(ctx);
+            if (d == null) return null;
+            d = d.mutate();
+            if (tint != 0) d.setTint(tint);
+            int w = Math.max(1, d.getIntrinsicWidth());
+            int h = Math.max(1, d.getIntrinsicHeight());
+            android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas c = new android.graphics.Canvas(bmp);
+            d.setBounds(0, 0, w, h);
+            d.draw(c);
+            return bmp;
+        } catch (Throwable t) { return null; }
+    }
+
+    /** Wie {@link #smallIcon(Context, Notification, int)} mit der
+     *  Benachrichtigungsfarbe als Tint (weiss als Rueckfall). */
+    public static android.graphics.Bitmap smallIcon(Context ctx, Notification n) {
+        int tint = (n != null && n.color != 0) ? n.color : android.graphics.Color.WHITE;
+        return smallIcon(ctx, n, tint);
+    }
+
     private static android.graphics.Bitmap iconToBitmap(Context ctx, android.graphics.drawable.Icon icon) {
         try {
             android.graphics.drawable.Drawable d = icon.loadDrawable(ctx);
