@@ -1,46 +1,48 @@
 # herbers-android-common
 
-Kleine gemeinsame Bausteine der Apps **EdgeTab**, **Sucher**, **ActiveFrames**
-und **BBMePing** – herausgelöst, damit mehrfach genutzte Funktionen in allen
-Programmen gleich aufgebaut sind (weniger Pflege). Paket `de.herbers.common`.
+*(English · [Deutsch](README.de.md))*
 
-## Enthalten
+Small shared building blocks for the Android apps **EdgeTab**, **Sucher**,
+**ActiveFrames** and **BBMePing** – factored out so that functionality used by
+more than one app shares a single, maintained implementation. Package
+`de.herbers.common`. **Zero third-party dependencies** (only `android.jar`).
 
-| Klasse | Zweck |
+## What's inside
+
+| Class | Purpose |
 |---|---|
-| `SettingsBackup` | Textbasierte Sicherung/Wiederherstellung einer kompletten `SharedPreferences`-Datei (`export`/`importInto`). Vereinheitlicht die zuvor je App kopierte Logik und **behebt Suchers fehlerhaften Restore** (dessen Import erwartete ein anderes Feld-Layout als der Export erzeugte). |
-| `ColorUtil` | `colorFor(key)` – stabile, unterscheidbare Farbe je Schlüssel (Paketname/Dateiendung), z. B. für farbige Balken je Quell-App. |
+| `SettingsBackup` | Text-based backup/restore of a whole `SharedPreferences` file (`export` / `importInto`). Unifies the logic previously copied into each app. |
+| `ColorUtil` | `colorFor(key)` – a stable, distinct colour per key (package name / file extension), e.g. a coloured bar per source app. |
 
-Geplant (nächste Schritte): gemeinsamer **Benachrichtigungs-Kern**
-(NotificationListener-Basis, Feld-Extraktion, Quellen-Auswahl inkl. „als gelesen
-markieren") und weitere Kleinhelfer.
+Planned next: a shared **notification core** (NotificationListener base, field
+extraction, source selection incl. "mark as read") and more small helpers.
 
-## Nutzung
+## Usage
 
 ```java
-// Sicherung (z. B. hinter einem "Sichern"/"Wiederherstellen"-Knopf)
-String text = SettingsBackup.export(prefs, "MeineApp-Backup 1");
-boolean ok  = SettingsBackup.importInto(prefs, "MeineApp-Backup 1", text);
+// Backup / restore (e.g. behind a "Back up" / "Restore" button)
+String text = SettingsBackup.export(prefs, "MyApp-Backup 1");
+boolean ok  = SettingsBackup.importInto(prefs, "MyApp-Backup 1", text);
 
 int color = ColorUtil.colorFor(packageName);
 ```
 
-## Einbinden
+## Building it in
 
-Als **Quell-Modul** gedacht: die Apps binden es als Git-Submodul ein und
-kompilieren `src/` mit (Raw-SDK-Build ohne Gradle).
+Designed as a **source module**: apps add it as a Git submodule and compile
+`src/` alongside their own sources (raw Android SDK build, no Gradle).
 
 ```
 git submodule add https://github.com/8818freak/herbers-android-common common
-# Build: src/ der App plus common/src/ mitkompilieren.
+# Build: compile the app's src/ plus common/src/.
 ```
 
-Nur `android.jar` nötig (keine Drittanbieter-Abhängigkeiten). Getestet auf
-Android 10+ (API 29); Java-8-Sprachfeatures.
+Only `android.jar` is required. Tested on Android 10+ (API 29); Java 8 language
+features.
 
-## Lizenz
+## License
 
-**GNU Lesser General Public License v3.0 (oder später)** – siehe `LICENSE`. Die
-LGPLv3 baut auf der [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html) auf.
-Einbindbar auch aus nicht-GPL-Apps; Änderungen an der Bibliothek selbst bleiben
-copyleft. Copyright © 2026 Mathias Herbers.
+**GNU Lesser General Public License v3.0 (or later)** – see `LICENSE`. The LGPLv3
+builds on the [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html). This means the
+library can be linked from non-GPL apps too, while changes to the library itself
+stay copyleft. Copyright © 2026 Mathias Herbers.
