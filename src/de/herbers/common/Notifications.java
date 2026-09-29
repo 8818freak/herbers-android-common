@@ -247,6 +247,117 @@ public final class Notifications {
     private static String str(CharSequence cs) { return cs == null ? "" : cs.toString(); }
 
     /**
+     * ALLES aus einer Benachrichtigung als JSON-Text - die strukturiert
+     * ausgewerteten Felder (siehe {@link Info}) UND zusaetzlich ein generischer
+     * Abzug SAEMTLICHER extras-Schluessel, auch derer, die diese Apps selbst
+     * nicht auswerten. Gedacht zum dauerhaften, verlustfreien Vorhalten in der
+     * Ablage ("speichern und auswertbar vorhalten"): eine App nimmt sich beim
+     * Anzeigen/Durchsuchen die Felder heraus, die sie braucht, ein anderer
+     * Wiederverwender findet die uebrigen hier wieder. Bitmaps/Icons werden
+     * NICHT eingebettet (nur ihr Vorhandensein/Typ vermerkt) - die holt man bei
+     * Bedarf ueber {@link #bigPicture}/{@link #largeIcon}. Nie null; "" bei
+     * Fehler.
+     */
+    public static String toJson(StatusBarNotification sbn, Notification n) {
+        try {
+            if (n == null && sbn != null) n = sbn.getNotification();
+            Info info = describe(sbn, n);
+            org.json.JSONObject o = new org.json.JSONObject();
+            o.put("appPackage", info.appPackage);
+            o.put("category", info.category);
+            o.put("when", info.when);
+            o.put("title", info.title);
+            o.put("titleBig", info.titleBig);
+            o.put("text", info.text);
+            o.put("subText", info.subText);
+            o.put("infoText", info.infoText);
+            o.put("summaryText", info.summaryText);
+            o.put("conversationTitle", info.conversationTitle);
+            org.json.JSONArray lines = new org.json.JSONArray();
+            for (String l : info.lines) lines.put(l);
+            o.put("lines", lines);
+            org.json.JSONArray msgs = new org.json.JSONArray();
+            for (Message m : info.messages) {
+                org.json.JSONObject mo = new org.json.JSONObject();
+                mo.put("sender", m.sender);
+                mo.put("text", m.text);
+                mo.put("time", m.time);
+                msgs.put(mo);
+            }
+            o.put("messages", msgs);
+            org.json.JSONArray people = new org.json.JSONArray();
+            for (String p : info.people) people.put(p);
+            o.put("people", people);
+            o.put("groupSummary", info.groupSummary);
+            o.put("ongoing", info.ongoing);
+            o.put("progress", info.progress);
+            o.put("progressMax", info.progressMax);
+            o.put("progressIndeterminate", info.progressIndeterminate);
+            o.put("hasBigPicture", info.hasBigPicture);
+            o.put("hasLargeIcon", info.hasLargeIcon);
+            o.put("canReply", info.canReply);
+            o.put("canMarkRead", info.canMarkRead);
+            o.put("canDelete", info.canDelete);
+            o.put("actionCount", info.actionCount);
+            if (n != null) {
+                o.put("flags", n.flags);
+                o.put("color", n.color);
+                o.put("channelId", n.getChannelId());
+            }
+            if (sbn != null) {
+                o.put("key", sbn.getKey());
+                o.put("postTime", sbn.getPostTime());
+                o.put("id", sbn.getId());
+                o.put("tag", sbn.getTag());
+            }
+            // Saemtliche uebrigen Extras generisch - auch die, die oben nicht
+            // strukturiert vorkommen (App-eigene Zusatzfelder etc.).
+            if (n != null && n.extras != null) o.put("extras", bundleToJson(n.extras));
+            return o.toString();
+        } catch (Throwable t) { return ""; }
+    }
+
+    /** Alle Schluessel eines Bundle als JSON-Objekt (rekursiv fuer verschachtelte
+     *  Bundles). Nicht text-sinnvolle Werte (Bitmaps, Icons, sonstige
+     *  Parcelables) werden nur mit ihrem Typ vermerkt. */
+    private static org.json.JSONObject bundleToJson(Bundle b) {
+        org.json.JSONObject o = new org.json.JSONObject();
+        if (b == null) return o;
+        for (String key : b.keySet()) {
+            try { o.put(key, jsonValue(b.get(key))); } catch (Throwable ignored) {}
+        }
+        return o;
+    }
+
+    private static Object jsonValue(Object v) {
+        if (v == null) return org.json.JSONObject.NULL;
+        if (v instanceof CharSequence) return v.toString();
+        if (v instanceof Boolean || v instanceof Integer || v instanceof Long
+                || v instanceof Double || v instanceof Float) return v;
+        if (v instanceof Number) return v.toString();
+        if (v instanceof CharSequence[]) {
+            org.json.JSONArray a = new org.json.JSONArray();
+            for (CharSequence c : (CharSequence[]) v) a.put(c == null ? org.json.JSONObject.NULL : c.toString());
+            return a;
+        }
+        if (v instanceof String[]) {
+            org.json.JSONArray a = new org.json.JSONArray();
+            for (String s : (String[]) v) a.put(s == null ? org.json.JSONObject.NULL : s);
+            return a;
+        }
+        if (v instanceof Bundle) return bundleToJson((Bundle) v);
+        if (v instanceof android.os.Parcelable[]) {
+            org.json.JSONArray a = new org.json.JSONArray();
+            for (android.os.Parcelable p : (android.os.Parcelable[]) v) {
+                if (p instanceof Bundle) a.put(bundleToJson((Bundle) p));
+                else a.put(p == null ? org.json.JSONObject.NULL : ("[" + p.getClass().getSimpleName() + "]"));
+            }
+            return a;
+        }
+        return "[" + v.getClass().getSimpleName() + "]";
+    }
+
+    /**
      * Alles aus einer Benachrichtigung strukturiert einsammeln (siehe {@link Info}).
      * {@code sbn} darf null sein - dann fehlen nur die davon abgeleiteten Felder
      * (Paket, when). Bitmaps sind bewusst NICHT enthalten.
