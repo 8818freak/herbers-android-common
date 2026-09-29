@@ -12,10 +12,11 @@ Programmen gleich aufgebaut sind (weniger Pflege). Paket `de.herbers.common`.
 |---|---|
 | `SettingsBackup` | Textbasierte Sicherung/Wiederherstellung einer kompletten `SharedPreferences`-Datei (`export`/`importInto`). Vereinheitlicht die zuvor je App kopierte Logik und **behebt Suchers fehlerhaften Restore** (dessen Import erwartete ein anderes Feld-Layout als der Export erzeugte). |
 | `ColorUtil` | `colorFor(key)` – stabile, unterscheidbare Farbe je Schlüssel (Paketname/Dateiendung), z. B. für farbige Balken je Quell-App. |
+| `Notifications` | Gemeinsamer Kern fürs Mitschneiden von Benachrichtigungen: Titel/Text-Extraktion (bevorzugt BigText), Filter (Gruppen-Summary/leer), App-Label, „echte Benachrichtigung"-Test, Inhalts-Signatur und Aktions-Finder (Antworten, Löschen, **als gelesen**) inkl. Wearable-Aktionen. Reine statische Helfer auf `Notification`/`StatusBarNotification`, ohne App-Kopplung. |
 
-Geplant (nächste Schritte): gemeinsamer **Benachrichtigungs-Kern**
-(NotificationListener-Basis, Feld-Extraktion, Quellen-Auswahl inkl. „als gelesen
-markieren") und weitere Kleinhelfer.
+Jede App behält ihren eigenen `NotificationListenerService` (was sie mit einer
+Benachrichtigung tut, unterscheidet sich), teilt sich aber nun Feld-Extraktion,
+Filter und Aktions-Erkennung über `Notifications`. Geplant: weitere Kleinhelfer.
 
 ## Nutzung
 

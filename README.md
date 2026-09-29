@@ -13,9 +13,11 @@ more than one app shares a single, maintained implementation. Package
 |---|---|
 | `SettingsBackup` | Text-based backup/restore of a whole `SharedPreferences` file (`export` / `importInto`). Unifies the logic previously copied into each app. |
 | `ColorUtil` | `colorFor(key)` – a stable, distinct colour per key (package name / file extension), e.g. a coloured bar per source app. |
+| `Notifications` | Shared notification-capture core: title/text extraction (prefers big text), group-summary/blank filters, app label, "real notification" test, content signature, and action finders (reply, delete, **mark as read**) incl. Wearable actions. Pure static helpers on `Notification`/`StatusBarNotification`, no app coupling. |
 
-Planned next: a shared **notification core** (NotificationListener base, field
-extraction, source selection incl. "mark as read") and more small helpers.
+Each app keeps its own `NotificationListenerService` (what it does with a
+notification differs), but now shares the field extraction, filters and action
+detection through `Notifications`. Planned next: more small helpers.
 
 ## Usage
 
