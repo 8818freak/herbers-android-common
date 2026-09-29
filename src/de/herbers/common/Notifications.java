@@ -418,6 +418,46 @@ public final class Notifications {
     }
 
     /**
+     * Eine "unterhaltungsartige" Benachrichtigung: Chat oder Mail. Erkennung an
+     * der MessagingStyle-Nachrichtenliste (EXTRA_MESSAGES) oder der Kategorie
+     * (CATEGORY_MESSAGE / CATEGORY_EMAIL). Nuetzlich, um genau bei diesen den
+     * gespeicherten Inhalt vor einem entwertenden Neu-Post zu schuetzen (siehe
+     * {@link #looksLikeReplyConfirmation}), ohne Fortschritts-/Medien-/System-
+     * Benachrichtigungen anzufassen, die sich absichtlich laufend aktualisieren.
+     */
+    public static boolean isConversational(Notification n) {
+        if (n == null) return false;
+        String cat = n.category;
+        if (Notification.CATEGORY_MESSAGE.equals(cat) || Notification.CATEGORY_EMAIL.equals(cat)) return true;
+        return n.extras != null && n.extras.getParcelableArray(Notification.EXTRA_MESSAGES) != null;
+    }
+
+    /** Bekannte "Antwort/Nachricht gesendet"-Bestaetigungstexte (mehrsprachig,
+     *  klein geschrieben, ohne Satzzeichen). Manche Apps (BlackBerry Hub/BBMe)
+     *  posten dieselbe Benachrichtigung nach dem Antworten mit einem solchen
+     *  Text neu - der wuerde die urspruengliche Nachricht entwerten. */
+    private static final java.util.Set<String> REPLY_CONFIRMATIONS = new java.util.HashSet<>(java.util.Arrays.asList(
+            "geantwortet", "antwort gesendet", "antwort verschickt", "gesendet",
+            "nachricht gesendet", "sie haben geantwortet", "du hast geantwortet",
+            "replied", "reply sent", "message sent", "sent", "you replied"));
+
+    /**
+     * Sieht dieser (Titel, Text) nach einer blossen Sende-/Antwort-Bestaetigung
+     * oder einem leeren Inhalt aus - also nach einem Neu-Post, der eine zuvor
+     * gespeicherte echte Nachricht NICHT ersetzen sollte? Leerer Text zaehlt
+     * dazu (Verlust). Bewusst konservativ (feste Marker), damit echte neue
+     * Nachrichten - auch kurze - weiter durchkommen.
+     */
+    public static boolean looksLikeReplyConfirmation(String title, String text) {
+        String t = text == null ? "" : text.trim();
+        if (t.isEmpty()) return true;
+        String norm = t.toLowerCase(Locale.ROOT);
+        while (norm.endsWith(".") || norm.endsWith("!") || norm.endsWith("…"))
+            norm = norm.substring(0, norm.length() - 1).trim();
+        return REPLY_CONFIRMATIONS.contains(norm);
+    }
+
+    /**
      * Inhaltliche Kennung: gleiche App + Titel + Text = dieselbe Nachricht.
      * Noetig, weil manche Quellen (z.B. der BlackBerry Hub) dieselbe Mail
      * mehrfach neu posten und dabei den Schluessel wechseln.
