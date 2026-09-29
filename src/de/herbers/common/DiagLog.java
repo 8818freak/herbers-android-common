@@ -55,6 +55,20 @@ public final class DiagLog {
         }
     }
 
+    /** Wie {@link #read}, aber neueste Zeilen zuerst - fuer die Anzeige in den
+     *  Einstellungen (Mathias' Wunsch: juengste Eintraege oben, in allen Apps). */
+    public static String readNewestFirst(Context ctx) {
+        String s = read(ctx);
+        if (s == null || s.isEmpty()) return "";
+        String[] lines = s.split("\n");
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = lines.length - 1; i >= 0; i--) {
+            if (lines[i].isEmpty()) continue;
+            sb.append(lines[i]).append('\n');
+        }
+        return sb.toString();
+    }
+
     public static void clear(Context ctx) {
         try { new File(ctx.getFilesDir(), FILE).delete(); } catch (Throwable ignored) {}
     }
