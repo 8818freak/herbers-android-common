@@ -15,6 +15,8 @@ more than one app shares a single, maintained implementation. Package
 | `ColorUtil` | `colorFor(key)` – a stable, distinct colour per key (package name / file extension), e.g. a coloured bar per source app. |
 | `Notifications` | Shared notification-capture core: title/text extraction (prefers big text), group-summary/blank filters, app label, "real notification" test, content signature, and action finders (reply, delete, **mark as read**) incl. Wearable actions. Pure static helpers on `Notification`/`StatusBarNotification`, no app coupling. |
 | `Apps` | `launchable(ctx)` – all launcher apps (excluding your own) as `{package, label}`, sorted by label. Basis for app-picker lists (e.g. "notification sources"); each app appends its own already-observed senders. |
+| `DiagLog` | Tiny persistent on-device diagnostic log (`getFilesDir/diag.log`, capped, mirrored to logcat with a per-app tag via `setTag`). `log/read/clear`. Viewable/clearable in-app without a cable. |
+| `Diagnostics` | `stackOf(Thread)` / `stackOf(Throwable)` to capture where something hangs/crashed, and `installCrashLogger(ctx)` to record uncaught crashes into `DiagLog`. The app-specific watchdog around a long-running worker stays in the app. |
 
 Each app keeps its own `NotificationListenerService` (what it does with a
 notification differs), but now shares the field extraction, filters and action
